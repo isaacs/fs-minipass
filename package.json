@@ -1,0 +1,28 @@
+{
+  "name": "fs-minipass",
+  "version": "0.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "tap --100 -J test/*.js"
+  },
+  "keywords": [],
+  "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/npm/fs-minipass.git"
+  },
+  "bugs": {
+    "url": "https://github.com/npm/fs-minipass/issues"
+  },
+  "homepage": "https://github.com/npm/fs-minipass#readme",
+  "description": "fs read and write streams based on minipass",
+  "dependencies": {
+    "minipass": "^2.2.1"
+  },
+  "devDependencies": {
+    "mutate-fs": "^2.0.1",
+    "source-map-support": "github:tapjs/node-source-map-support",
+    "tap": "^10.7.2"
+  }
+}
