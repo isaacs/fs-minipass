@@ -25,7 +25,6 @@
   },
   "devDependencies": {
     "mutate-fs": "^2.0.1",
-    "source-map-support": "github:tapjs/node-source-map-support",
     "tap": "^10.7.2"
   }
 }
