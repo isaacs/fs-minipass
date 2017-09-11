@@ -14,7 +14,10 @@ const _handleChunk = Symbol('_handleChunk')
 const _close = Symbol('_close')
 const _onerror = Symbol('_onerror')
 const _makeBuf = Symbol('_makeBuf')
+const _remain = Symbol('_remain')
+const _size = Symbol('_size')
 
+// XXX support passing in file size to avoid the extra 0b read
 class ReadStream extends MiniPass {
   constructor (path, opt) {
     opt = opt || {}
@@ -30,6 +33,8 @@ class ReadStream extends MiniPass {
     this[_path] = path
     this[_readSize] = opt.readSize || 16*1024*1024
     this[_reading] = false
+    this[_size] = typeof opt.size === 'number' ? opt.size : Infinity
+    this[_remain] = this[_size]
 
     if (typeof this[_fd] === 'number')
       this[_read]()
@@ -63,7 +68,7 @@ class ReadStream extends MiniPass {
   }
 
   [_makeBuf] () {
-    return Buffer.allocUnsafe(this[_readSize])
+    return Buffer.allocUnsafe(Math.min(this[_readSize], this[_remain]))
   }
 
   [_read] () {
@@ -84,7 +89,8 @@ class ReadStream extends MiniPass {
   }
 
   [_close] () {
-    fs.close(this[_fd], _ => _)
+    if (typeof this[_fd] === 'number')
+      fs.close(this[_fd], _ => _)
     this[_fd] = null
   }
 
@@ -97,11 +103,16 @@ class ReadStream extends MiniPass {
 
   [_handleChunk] (br, buf) {
     let ret = false
-    if (br === 0) {
+    // no effect if infinite
+    this[_remain] -= br
+    if (br > 0)
+      ret = super.write(br < buf.length ? buf.slice(0, br) : buf)
+
+    if (br === 0 || this[_remain] <= 0) {
       this[_close]()
       super.end()
-    } else
-      ret = super.write(br < buf.length ? buf.slice(0, br) : buf)
+    }
+
     return ret
   }
 

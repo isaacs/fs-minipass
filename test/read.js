@@ -47,6 +47,48 @@ t.test('read the readme', t => {
   })
 })
 
+t.test('read the readme sized', t => {
+  const p = __dirname + '/../README.md'
+  const size = fs.statSync(p).size
+  const rm = fs.readFileSync(p, 'utf8')
+  const check = (t, res) => {
+    t.equal(rm, res)
+    t.end()
+  }
+
+  t.test('sync', t => {
+    const str = new fsm.ReadStreamSync(p, { encoding: 'utf8', size: size })
+    t.equal(str.fd, null)
+    const out = []
+    str.on('data', chunk => out.push(chunk))
+    check(t, out.join(''))
+  })
+
+  t.test('sync using read()', t => {
+    const str = new fsm.ReadStreamSync(p, { encoding: 'utf8', size: size })
+    t.equal(str.fd, null)
+    const out = []
+    let chunk
+    while (chunk = str.read())
+      out.push(chunk)
+    check(t, out.join(''))
+  })
+
+  return t.test('async', t => {
+    const str = new fsm.ReadStream(p, { encoding: 'utf8', size: size })
+    t.equal(str.fd, null)
+    let sawFD
+    str.on('open', fd => sawFD = fd)
+    const out = []
+    t.equal(str.read(), null)
+    str.on('data', chunk => out.push(chunk))
+    str.on('end', _ => {
+      t.isa(sawFD, 'number')
+      check(t, out.join(''))
+    })
+  })
+})
+
 t.test('slow sink', t => {
   const chunks = []
   const EE = require('events').EventEmitter
