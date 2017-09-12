@@ -24,6 +24,7 @@ const _onread = Symbol('_onread')
 const _onwrite = Symbol('_onwrite')
 const _open = Symbol('_open')
 const _path = Symbol('_path')
+const _pos = Symbol('_pos')
 const _queue = Symbol('_queue')
 const _read = Symbol('_read')
 const _readSize = Symbol('_readSize')
@@ -199,8 +200,13 @@ class WriteStream extends EE {
     this[_queue] = []
     this[_path] = path
     this[_fd] = typeof opt.fd === 'number' ? opt.fd : null
-    this[_flags] = opt.flags === undefined ? 'w' : opt.flags
     this[_mode] = opt.mode === undefined ? 0o666 : opt.mode
+    this[_pos] = typeof opt.start === 'number' ? opt.start : null
+
+    // truncating makes no sense when writing into the middle
+    const defaultFlag = this[_pos] ? 'a' : 'w'
+    this[_flags] = opt.flags === undefined ? defaultFlag : opt.flags
+
     if (typeof this[_fd] !== 'number')
       this[_open]()
   }
@@ -260,11 +266,12 @@ class WriteStream extends EE {
   }
 
   [_write] (buf) {
-    fs.write(this[_fd], buf, 0, buf.length, null, er =>
+    fs.write(this[_fd], buf, 0, buf.length, this[_pos], er =>
       this[_onwrite](er))
   }
 
   [_onwrite] (er) {
+    this[_pos] = null
     if (er)
       this[_onerror](er)
     else {
@@ -320,7 +327,7 @@ class WriteStreamSync extends WriteStream {
   [_write] (buf) {
     try {
       this[_onwrite](null,
-        fs.writeSync(this[_fd], buf, 0, buf.length, null))
+        fs.writeSync(this[_fd], buf, 0, buf.length, this[_pos]))
     } catch (er) {
       this[_onwrite](er, 0)
     }
