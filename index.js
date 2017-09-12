@@ -205,7 +205,7 @@ class WriteStream extends EE {
     this[_pos] = typeof opt.start === 'number' ? opt.start : null
 
     // truncating makes no sense when writing into the middle
-    const defaultFlag = this[_pos] ? 'a' : 'w'
+    const defaultFlag = this[_pos] !== null ? 'a' : 'w'
     this[_flags] = opt.flags === undefined ? defaultFlag : opt.flags
 
     if (this[_fd] === null)
@@ -275,7 +275,7 @@ class WriteStream extends EE {
     if (er)
       this[_onerror](er)
     else {
-      if (this[_pos])
+      if (this[_pos] !== null)
         this[_pos] += bw
       if (this[_queue].length)
         this[_flush]()
