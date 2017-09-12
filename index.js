@@ -208,7 +208,7 @@ class WriteStream extends EE {
     const defaultFlag = this[_pos] ? 'a' : 'w'
     this[_flags] = opt.flags === undefined ? defaultFlag : opt.flags
 
-    if (typeof this[_fd] !== 'number')
+    if (this[_fd] === null)
       this[_open]()
   }
 
@@ -267,15 +267,16 @@ class WriteStream extends EE {
   }
 
   [_write] (buf) {
-    fs.write(this[_fd], buf, 0, buf.length, this[_pos], er =>
-      this[_onwrite](er))
+    fs.write(this[_fd], buf, 0, buf.length, this[_pos], (er, bw) =>
+      this[_onwrite](er, bw))
   }
 
-  [_onwrite] (er) {
-    this[_pos] = null
+  [_onwrite] (er, bw) {
     if (er)
       this[_onerror](er)
     else {
+      if (this[_pos])
+        this[_pos] += bw
       if (this[_queue].length)
         this[_flush]()
       else {
@@ -302,7 +303,8 @@ class WriteStream extends EE {
     else {
       const iovec = this[_queue]
       this[_queue] = []
-      writev(this[_fd], iovec, null, er => this[_onwrite](er))
+      writev(this[_fd], iovec, this[_pos],
+        (er, bw) => this[_onwrite](er, bw))
     }
   }
 
@@ -337,7 +339,7 @@ class WriteStreamSync extends WriteStream {
 }
 
 const writev = (fd, iovec, pos, cb) => {
-  const done = er => cb(er, iovec)
+  const done = (er, bw) => cb(er, bw, iovec)
   const req = new FSReqWrap()
   req.oncomplete = done
   binding.writeBuffers(fd, iovec, pos, req)

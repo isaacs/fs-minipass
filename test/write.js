@@ -352,3 +352,42 @@ t.test('positioned write', t => {
 
   t.end()
 })
+
+t.test('positioned then unpositioned', t => {
+  const p = __dirname + '/positioned-then-unpositioned'
+  const write = new Buffer('this is the data that is written')
+
+  const data = Buffer.allocUnsafe(256)
+  for (let i = 0; i < 256; i++) {
+    data[i] = i
+  }
+
+  const expect = new Buffer(data.toString('hex'), 'hex')
+  for (let i = 0; i < write.length; i++) {
+    expect[i + 100] = write[i]
+  }
+
+  const check = t => {
+    t.same(fs.readFileSync(p), expect)
+    fs.unlinkSync(p)
+    t.end()
+  }
+
+  t.test('sync', t => {
+    fs.writeFileSync(p, data)
+    const s = new fsm.WriteStreamSync(p, { start: 100 })
+    s.write(write.slice(0, 20))
+    s.end(write.slice(20))
+    check(t)
+  })
+
+  t.test('async', t => {
+    fs.writeFileSync(p, data)
+    const s = new fsm.WriteStream(p, { start: 100 })
+    s.write(write.slice(0, 20))
+    s.end(write.slice(20))
+    s.on('close', _ => check(t))
+  })
+
+  t.end()
+})
