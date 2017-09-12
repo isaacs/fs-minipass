@@ -23,7 +23,7 @@ t.test('basic write', t => {
   t.test('async', t => {
     const s = new fsm.WriteStream(p)
     s.end('ok')
-    s.on('finish', _ => check(t))
+    s.on('close', _ => check(t))
   })
 
   t.end()

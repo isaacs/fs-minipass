@@ -40,7 +40,7 @@ t.test('read the readme', t => {
     const out = []
     t.equal(str.read(), null)
     str.on('data', chunk => out.push(chunk))
-    str.on('end', _ => {
+    str.on('close', _ => {
       t.isa(sawFD, 'number')
       check(t, out.join(''))
     })

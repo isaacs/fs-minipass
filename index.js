@@ -106,7 +106,7 @@ class ReadStream extends MiniPass {
 
   [_close] () {
     if (typeof this[_fd] === 'number')
-      fs.close(this[_fd], _ => _)
+      fs.close(this[_fd], _ => this.emit('close'))
     this[_fd] = null
   }
 
@@ -186,6 +186,7 @@ class ReadStreamSync extends ReadStream {
       fs.closeSync(this[_fd])
     } catch (er) {}
     this[_fd] = null
+    this.emit('close')
   }
 }
 
@@ -306,7 +307,7 @@ class WriteStream extends EE {
   }
 
   [_close] () {
-    fs.close(this[_fd], _ => _)
+    fs.close(this[_fd], _ => this.emit('close'))
     this[_fd] = null
   }
 }
@@ -322,6 +323,7 @@ class WriteStreamSync extends WriteStream {
       fs.closeSync(this[_fd])
     } catch (er) {}
     this[_fd] = null
+    this.emit('close')
   }
 
   [_write] (buf) {
