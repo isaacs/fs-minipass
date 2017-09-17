@@ -8,6 +8,7 @@ const binding = process.binding('fs')
 const writeBuffers = binding.writeBuffers
 const FSReqWrap = binding.FSReqWrap
 
+const _autoClose = Symbol('_autoClose')
 const _close = Symbol('_close')
 const _ended = Symbol('_ended')
 const _fd = Symbol('_fd')
@@ -44,13 +45,14 @@ class ReadStream extends MiniPass {
     if (typeof path !== 'string')
       throw new TypeError('path must be a string')
 
-    this.id = Math.random()
     this[_fd] = typeof opt.fd === 'number' ? opt.fd : null
     this[_path] = path
     this[_readSize] = opt.readSize || 16*1024*1024
     this[_reading] = false
     this[_size] = typeof opt.size === 'number' ? opt.size : Infinity
     this[_remain] = this[_size]
+    this[_autoClose] = typeof opt.autoClose === 'boolean' ?
+      opt.autoClose : true
 
     if (typeof this[_fd] === 'number')
       this[_read]()
@@ -105,15 +107,15 @@ class ReadStream extends MiniPass {
   }
 
   [_close] () {
-    if (typeof this[_fd] === 'number')
+    if (this[_autoClose] && typeof this[_fd] === 'number') {
       fs.close(this[_fd], _ => this.emit('close'))
-    this[_fd] = null
+      this[_fd] = null
+    }
   }
 
   [_onerror] (er) {
     this[_reading] = true
-    if (typeof this[_fd] === 'number')
-      this[_close]()
+    this[_close]()
     this.emit('error', er)
   }
 
@@ -182,11 +184,13 @@ class ReadStreamSync extends ReadStream {
   }
 
   [_close] () {
-    try {
-      fs.closeSync(this[_fd])
-    } catch (er) {}
-    this[_fd] = null
-    this.emit('close')
+    if (this[_autoClose] && typeof this[_fd] === 'number') {
+      try {
+        fs.closeSync(this[_fd])
+      } catch (er) {}
+      this[_fd] = null
+      this.emit('close')
+    }
   }
 }
 
@@ -203,6 +207,8 @@ class WriteStream extends EE {
     this[_fd] = typeof opt.fd === 'number' ? opt.fd : null
     this[_mode] = opt.mode === undefined ? 0o666 : opt.mode
     this[_pos] = typeof opt.start === 'number' ? opt.start : null
+    this[_autoClose] = typeof opt.autoClose === 'boolean' ?
+      opt.autoClose : true
 
     // truncating makes no sense when writing into the middle
     const defaultFlag = this[_pos] !== null ? 'a' : 'w'
@@ -212,9 +218,11 @@ class WriteStream extends EE {
       this[_open]()
   }
 
+  get fd () { return this[_fd] }
+  get path () { return this[_path] }
+
   [_onerror] (er) {
-    if (typeof this[_fd] === 'number')
-      this[_close]()
+    this[_close]()
     this[_writing] = true
     this.emit('error', er)
   }
@@ -309,8 +317,10 @@ class WriteStream extends EE {
   }
 
   [_close] () {
-    fs.close(this[_fd], _ => this.emit('close'))
-    this[_fd] = null
+    if (this[_autoClose] && typeof this[_fd] === 'number') {
+      fs.close(this[_fd], _ => this.emit('close'))
+      this[_fd] = null
+    }
   }
 }
 
@@ -321,11 +331,13 @@ class WriteStreamSync extends WriteStream {
   }
 
   [_close] () {
-    try {
-      fs.closeSync(this[_fd])
-    } catch (er) {}
-    this[_fd] = null
-    this.emit('close')
+    if (this[_autoClose] && typeof this[_fd] === 'number') {
+      try {
+        fs.closeSync(this[_fd])
+      } catch (er) {}
+      this[_fd] = null
+      this.emit('close')
+    }
   }
 
   [_write] (buf) {

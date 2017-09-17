@@ -36,3 +36,35 @@ const writeStream = new fsm.WriteStream('output.txt')
 writeStream.write('some file header or whatever\n')
 readStream.pipe(writeStream)
 ```
+
+## ReadStream(path, options)
+
+Path string is required, but somewhat irrelevant if an open file
+descriptor is passed in as an option.
+
+Options:
+
+- `fd` Pass in a numeric file descriptor, if the file is already open.
+- `readSize` The size of reads to do, defaults to 16MB
+- `size` The size of the file, if known.  Prevents zero-byte read()
+  call at the end.
+- `autoClose` Set to `false` to prevent the file descriptor from being
+  closed when the file is done being read.
+
+## WriteStream(path, options)
+
+Path string is required, but somewhat irrelevant if an open file
+descriptor is passed in as an option.
+
+Options:
+
+- `fd` Pass in a numeric file descriptor, if the file is already open.
+- `mode` The mode to create the file with. Defaults to `0o666`.
+- `start` The position in the file to start reading.  If not
+  specified, then the file will start writing at position zero, and be
+  truncated by default.
+- `autoClose` Set to `false` to prevent the file descriptor from being
+  closed when the stream is ended.
+- `flags` Flags to use when opening the file.  Irrelevant if `fd` is
+  passed in, since file won't be opened in that case.  Defaults to
+  `'a'` if a `pos` is specified, or `'w'` otherwise.

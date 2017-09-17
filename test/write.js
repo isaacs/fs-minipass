@@ -49,6 +49,12 @@ t.test('write then end', t => {
     const s = new fsm.WriteStream(p)
     s.write('ok')
     s.end('end')
+    t.equal(s.fd, null)
+    t.equal(s.path, p)
+    s.on('open', fd => {
+      t.equal(fd, s.fd)
+      t.isa(fd, 'number')
+    })
     s.on('finish', _ => check(t))
   })
 
@@ -426,6 +432,32 @@ t.test('positioned then unpositioned at zero', t => {
     s.write(write.slice(0, 20))
     s.end(write.slice(20))
     s.on('close', _ => check(t))
+  })
+
+  t.end()
+})
+
+t.test('fd, no autoClose', t => {
+  const p = __dirname + '/fd-no-autoclose'
+
+  const check = (t, fd) => {
+    fs.closeSync(fd)
+    t.equal(fs.readFileSync(p, 'utf8'), 'ok')
+    fs.unlinkSync(p)
+    t.end()
+  }
+
+  t.test('sync', t => {
+    const fd = fs.openSync(p, 'w')
+    new fsm.WriteStreamSync(p, { fd: fd, autoClose: false }).end('ok')
+    check(t, fd)
+  })
+
+  t.test('async', t => {
+    const fd = fs.openSync(p, 'w')
+    const s = new fsm.WriteStream(p, { fd: fd, autoClose: false })
+    s.end('ok')
+    s.on('finish', _ => check(t, fd))
   })
 
   t.end()

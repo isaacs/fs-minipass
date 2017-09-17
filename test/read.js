@@ -285,3 +285,61 @@ t.test('fd test', t => {
 
   t.end()
 })
+
+t.test('fd test, no autoClose', t => {
+  const p = __dirname + '/../README.md'
+  const rm = fs.readFileSync(p, 'utf8')
+  const check = (t, res, fd) => {
+    // will throw EBADF if already closed
+    fs.closeSync(fd)
+    t.equal(rm, res)
+    t.end()
+  }
+
+  t.test('sync', t => {
+    const fd = fs.openSync(p, 'r')
+    const str = new fsm.ReadStreamSync(p, {
+      encoding: 'utf8',
+      fd: fd,
+      autoClose: false
+    })
+    t.isa(str.fd, 'number')
+    t.equal(str.path, p)
+    const out = []
+    str.on('data', chunk => out.push(chunk))
+    check(t, out.join(''), fd)
+  })
+
+  t.test('sync using read()', t => {
+    const fd = fs.openSync(p, 'r')
+    const str = new fsm.ReadStreamSync(p, {
+      encoding: 'utf8',
+      fd: fd,
+      autoClose: false
+    })
+    t.isa(str.fd, 'number')
+    t.equal(str.path, p)
+    const out = []
+    let chunk
+    while (chunk = str.read())
+      out.push(chunk)
+    check(t, out.join(''), fd)
+  })
+
+  t.test('async', t => {
+    const fd = fs.openSync(p, 'r')
+    const str = new fsm.ReadStream(p, {
+      encoding: 'utf8',
+      fd: fd,
+      autoClose: false
+    })
+    t.isa(str.fd, 'number')
+    t.equal(str.path, p)
+    const out = []
+    t.equal(str.read(), null)
+    str.on('data', chunk => out.push(chunk))
+    str.on('end', _ => check(t, out.join(''), fd))
+  })
+
+  t.end()
+})
