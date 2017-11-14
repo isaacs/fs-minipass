@@ -462,3 +462,33 @@ t.test('fd, no autoClose', t => {
 
   t.end()
 })
+
+t.test('positioned, nonexistent file', t => {
+  const p = __dirname + '/pos-noent'
+
+  const check = t => {
+    t.equal(fs.readFileSync(p, 'utf8'), '\0\0asdf\0\0\0\0asdf')
+    fs.unlinkSync(p)
+    t.end()
+  }
+
+  t.test('sync', t => {
+    const w = new fsm.WriteStreamSync(p, { start: 10 })
+    w.end('asdf')
+    const w2 = new fsm.WriteStreamSync(p, { start: 2 })
+    w2.end('asdf')
+    check(t)
+  })
+
+  t.test('async', t => {
+    const w = new fsm.WriteStream(p, { start: 10 })
+    w.end('asdf')
+    w.on('close', _ => {
+      const w = new fsm.WriteStream(p, { start: 2 })
+      w.end('asdf')
+      w.on('close', _ => check(t))
+    })
+  })
+
+  t.end()
+})

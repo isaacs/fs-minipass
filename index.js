@@ -34,6 +34,7 @@ const _remain = Symbol('_remain')
 const _size = Symbol('_size')
 const _write = Symbol('_write')
 const _writing = Symbol('_writing')
+const _defaultFlag = Symbol('_defaultFlag')
 
 class ReadStream extends MiniPass {
   constructor (path, opt) {
@@ -212,8 +213,9 @@ class WriteStream extends EE {
       opt.autoClose : true
 
     // truncating makes no sense when writing into the middle
-    const defaultFlag = this[_pos] !== null ? 'a' : 'w'
-    this[_flags] = opt.flags === undefined ? defaultFlag : opt.flags
+    const defaultFlag = this[_pos] !== null ? 'r+' : 'w'
+    this[_defaultFlag] = opt.flags === undefined
+    this[_flags] = this[_defaultFlag] ? defaultFlag : opt.flags
 
     if (this[_fd] === null)
       this[_open]()
@@ -234,7 +236,12 @@ class WriteStream extends EE {
   }
 
   [_onopen] (er, fd) {
-    if (er)
+    if (this[_defaultFlag] &&
+        this[_flags] === 'r+' &&
+        er && er.code === 'ENOENT') {
+      this[_flags] = 'w'
+      this[_open]()
+    } else if (er)
       this[_onerror](er)
     else {
       this[_fd] = fd
@@ -327,8 +334,19 @@ class WriteStream extends EE {
 
 class WriteStreamSync extends WriteStream {
   [_open] () {
-    this[_onopen](null,
-      fs.openSync(this[_path], this[_flags], this[_mode]))
+    let fd
+    try {
+      fd = fs.openSync(this[_path], this[_flags], this[_mode])
+    } catch (er) {
+      if (this[_defaultFlag] &&
+          this[_flags] === 'r+' &&
+          er && er.code === 'ENOENT') {
+        this[_flags] = 'w'
+        return this[_open]()
+      } else
+        throw er
+    }
+    this[_onopen](null, fd)
   }
 
   [_close] () {
