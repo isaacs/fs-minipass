@@ -127,6 +127,7 @@ class ReadStream extends MiniPass {
       ret = super.write(br < buf.length ? buf.slice(0, br) : buf)
 
     if (br === 0 || this[_remain] <= 0) {
+      ret = false
       this[_close]()
       super.end()
     }
