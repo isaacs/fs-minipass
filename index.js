@@ -95,7 +95,7 @@ class ReadStream extends MiniPass {
       this[_reading] = true
       const buf = this[_makeBuf]()
       /* istanbul ignore if */
-      if (buf.length === 0) return process.nextTick(this[_onread], null, 0, buf)
+      if (buf.length === 0) return process.nextTick(() => this[_onread](null, 0, buf))
       fs.read(this[_fd], buf, 0, buf.length, null, (er, br, buf) =>
         this[_onread](er, br, buf))
     }
