@@ -3,11 +3,6 @@ const MiniPass = require('minipass')
 const EE = require('events').EventEmitter
 const fs = require('fs')
 
-// for writev
-const binding = process.binding('fs')
-const writeBuffers = binding.writeBuffers
-const FSReqWrap = binding.FSReqWrap
-
 const _autoClose = Symbol('_autoClose')
 const _close = Symbol('_close')
 const _ended = Symbol('_ended')
@@ -320,10 +315,9 @@ class WriteStream extends EE {
     } else if (this[_queue].length === 1)
       this[_write](this[_queue].pop())
     else {
-      const iovec = this[_queue]
+      const buf = Buffer.concat(this[_queue])
       this[_queue] = []
-      writev(this[_fd], iovec, this[_pos],
-        (er, bw) => this[_onwrite](er, bw))
+      this[_write](buf)
     }
   }
 
@@ -370,13 +364,6 @@ class WriteStreamSync extends WriteStream {
       this[_onwrite](er, 0)
     }
   }
-}
-
-const writev = (fd, iovec, pos, cb) => {
-  const done = (er, bw) => cb(er, bw, iovec)
-  const req = new FSReqWrap()
-  req.oncomplete = done
-  binding.writeBuffers(fd, iovec, pos, req)
 }
 
 exports.ReadStream = ReadStream
