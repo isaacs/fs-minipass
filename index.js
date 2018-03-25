@@ -267,7 +267,7 @@ class WriteStream extends EE {
 
   write (buf, enc) {
     if (typeof buf === 'string')
-      buf = new Buffer(buf, enc)
+      buf = Buffer.from(buf, enc)
 
     if (this[_ended]) {
       this.emit('error', new Error('write() after end()'))
