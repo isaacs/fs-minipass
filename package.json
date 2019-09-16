@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "mutate-fs": "^2.0.1",
-    "tap": "^13.1.9"
+    "tap": "^14.6.4"
   },
   "files": [
     "index.js"
