@@ -368,7 +368,7 @@ class WriteStreamSync extends WriteStream {
 }
 
 let writev = fs.writev
-/* istanbul ignore if */
+/* istanbul ignore next */
 if (!writev) {
   const binding = process.binding('fs')
   const writeBuffers = binding.writeBuffers
