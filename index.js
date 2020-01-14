@@ -6,6 +6,8 @@ const fs = require('fs')
 let writev = fs.writev
 /* istanbul ignore next */
 if (!writev) {
+  // This entire block can be removed if support for earlier than Node.js
+  // 12.9.0 is not needed.
   const binding = process.binding('fs')
   const FSReqWrap = binding.FSReqWrap || binding.FSReqCallback
 
