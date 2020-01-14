@@ -3,6 +3,20 @@ const MiniPass = require('minipass')
 const EE = require('events').EventEmitter
 const fs = require('fs')
 
+let writev = fs.writev
+/* istanbul ignore next */
+if (!writev) {
+  const binding = process.binding('fs')
+  const FSReqWrap = binding.FSReqWrap || binding.FSReqCallback
+
+  writev = (fd, iovec, pos, cb) => {
+    const done = (er, bw) => cb(er, bw, iovec)
+    const req = new FSReqWrap()
+    req.oncomplete = done
+    binding.writeBuffers(fd, iovec, pos, req)
+  }
+}
+
 const _autoClose = Symbol('_autoClose')
 const _close = Symbol('_close')
 const _ended = Symbol('_ended')
@@ -364,20 +378,6 @@ class WriteStreamSync extends WriteStream {
     } catch (er) {
       this[_onwrite](er, 0)
     }
-  }
-}
-
-let writev = fs.writev
-/* istanbul ignore next */
-if (!writev) {
-  const binding = process.binding('fs')
-  const FSReqWrap = binding.FSReqWrap || binding.FSReqCallback
-
-  writev = (fd, iovec, pos, cb) => {
-    const done = (er, bw) => cb(er, bw, iovec)
-    const req = new FSReqWrap()
-    req.oncomplete = done
-    binding.writeBuffers(fd, iovec, pos, req)
   }
 }
 
