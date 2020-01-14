@@ -371,7 +371,6 @@ let writev = fs.writev
 /* istanbul ignore next */
 if (!writev) {
   const binding = process.binding('fs')
-  const writeBuffers = binding.writeBuffers
   const FSReqWrap = binding.FSReqWrap || binding.FSReqCallback
 
   writev = (fd, iovec, pos, cb) => {
