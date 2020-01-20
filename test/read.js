@@ -172,6 +172,18 @@ t.test('fail open', t => {
   })
 })
 
+t.test('fail close', t => {
+  const poop = new Error('poop')
+  t.teardown(mutateFS.fail('close', poop))
+  t.throws(_ => new fsm.ReadStreamSync(__filename).resume(), poop)
+  const str = new fsm.ReadStream(__filename)
+  str.resume()
+  str.on('error', er => {
+    t.equal(er, poop)
+    t.end()
+  })
+})
+
 t.test('type errors', t => {
   const er = new TypeError('this is a readable stream')
   t.throws(_ => new fsm.ReadStream(__filename).write('hello'), er)
@@ -182,6 +194,10 @@ t.test('type errors', t => {
 })
 
 t.test('fail read', t => {
+  // also fail close, just to exercise the double-error logic
+  const closeError = new Error('close error')
+  t.teardown(mutateFS.fail('close', closeError))
+
   const poop = new Error('poop')
   const badFDs = new Set()
   const read = fs.read
@@ -231,9 +247,6 @@ t.test('fail read', t => {
   t.test('async', t => {
     const str = new fsm.ReadStream(__filename)
     str.once('error', er => {
-      str.on('error', er => {
-        console.error('got an other error', er)
-      })
       t.match(er, poop)
       t.end()
     })

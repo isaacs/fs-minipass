@@ -78,9 +78,9 @@ t.test('multiple writes', t => {
     s.write('d')
     s.write('e')
     s.write('f')
-    s.write(new Buffer('676869', 'hex'))
+    s.write(Buffer.from('676869', 'hex'))
     s.write('jklm')
-    s.write(new Buffer('nop'))
+    s.write(Buffer.from('nop'))
     s.end()
     check(t)
   })
@@ -93,9 +93,9 @@ t.test('multiple writes', t => {
     s.write('d')
     s.write('e')
     s.write('f')
-    s.write(new Buffer('676869', 'hex'))
+    s.write(Buffer.from('676869', 'hex'))
     s.write('jklm')
-    s.write(new Buffer('nop'))
+    s.write(Buffer.from('nop'))
     s.end()
     s.on('finish', _ => check(t))
   })
@@ -110,9 +110,9 @@ t.test('multiple writes', t => {
       t.notOk(s.write('d'))
       t.notOk(s.write('e'))
       t.notOk(s.write('f'))
-      t.notOk(s.write(new Buffer('676869', 'hex')))
+      t.notOk(s.write(Buffer.from('676869', 'hex')))
       t.notOk(s.write('jklm'))
-      t.notOk(s.write(new Buffer('nop')))
+      t.notOk(s.write(Buffer.from('nop')))
       s.end()
       s.on('finish', _ => check(t))
     })
@@ -130,9 +130,9 @@ t.test('multiple writes', t => {
         t.notOk(s.write('e'))
         s.once('drain', _ => {
           t.ok(s.write('f'))
-          t.notOk(s.write(new Buffer('676869', 'hex')))
+          t.notOk(s.write(Buffer.from('676869', 'hex')))
           t.notOk(s.write('jklm'))
-          t.notOk(s.write(new Buffer('nop')))
+          t.notOk(s.write(Buffer.from('nop')))
           s.once('drain', _ => s.end())
         })
       })
@@ -308,7 +308,36 @@ t.test('fail open', t => {
   })
 })
 
+t.test('fail open, positioned write', t => {
+  const p = __dirname + '/fail-open-positioned'
+  const poop = new Error('poop')
+  t.teardown(mutateFS.fail('open', poop))
+  t.throws(_ => new fsm.WriteStreamSync(p, { start: 2 }), poop)
+  const str = new fsm.WriteStream(p, { start: 2 })
+  str.on('error', er => {
+    t.equal(er, poop)
+    t.end()
+  })
+})
+
+t.test('fail close', t => {
+  const p = __dirname + '/fail-close'
+  const poop = new Error('poop')
+  t.teardown(mutateFS.fail('close', poop))
+  t.teardown(() => fs.unlinkSync(p))
+  t.throws(_ => new fsm.WriteStreamSync(p).end('asdf'), poop)
+  const str = new fsm.WriteStream(p).end('asdf')
+  str.on('error', er => {
+    t.equal(er, poop)
+    t.end()
+  })
+})
+
 t.test('fail write', t => {
+  // also fail close, just to exercise the double-error logic
+  const closeError = new Error('close error')
+  t.teardown(mutateFS.fail('close', closeError))
+
   const p = __dirname + '/fail-write'
   const poop = new Error('poop')
   t.teardown(mutateFS.fail('write', poop))
@@ -325,14 +354,14 @@ t.test('fail write', t => {
 
 t.test('positioned write', t => {
   const p = __dirname + '/positioned-write'
-  const write = new Buffer('this is the data that is written')
+  const write = Buffer.from('this is the data that is written')
 
   const data = Buffer.allocUnsafe(256)
   for (let i = 0; i < 256; i++) {
     data[i] = i
   }
 
-  const expect = new Buffer(data.toString('hex'), 'hex')
+  const expect = Buffer.from(data.toString('hex'), 'hex')
   for (let i = 0; i < write.length; i++) {
     expect[i + 100] = write[i]
   }
@@ -361,14 +390,14 @@ t.test('positioned write', t => {
 
 t.test('positioned then unpositioned', t => {
   const p = __dirname + '/positioned-then-unpositioned'
-  const write = new Buffer('this is the data that is written')
+  const write = Buffer.from('this is the data that is written')
 
   const data = Buffer.allocUnsafe(256)
   for (let i = 0; i < 256; i++) {
     data[i] = i
   }
 
-  const expect = new Buffer(data.toString('hex'), 'hex')
+  const expect = Buffer.from(data.toString('hex'), 'hex')
   for (let i = 0; i < write.length; i++) {
     expect[i + 100] = write[i]
   }
@@ -400,14 +429,14 @@ t.test('positioned then unpositioned', t => {
 
 t.test('positioned then unpositioned at zero', t => {
   const p = __dirname + '/positioned-then-unpositioned'
-  const write = new Buffer('this is the data that is written')
+  const write = Buffer.from('this is the data that is written')
 
   const data = Buffer.allocUnsafe(256)
   for (let i = 0; i < 256; i++) {
     data[i] = i
   }
 
-  const expect = new Buffer(data.toString('hex'), 'hex')
+  const expect = Buffer.from(data.toString('hex'), 'hex')
   for (let i = 0; i < write.length; i++) {
     expect[i] = write[i]
   }
