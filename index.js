@@ -3,11 +3,21 @@ const MiniPass = require('minipass')
 const EE = require('events').EventEmitter
 const fs = require('fs')
 
-// for writev
-const binding = process.binding('fs')
-const writeBuffers = binding.writeBuffers
+let writev = fs.writev
 /* istanbul ignore next */
-const FSReqWrap = binding.FSReqWrap || binding.FSReqCallback
+if (!writev) {
+  // This entire block can be removed if support for earlier than Node.js
+  // 12.9.0 is not needed.
+  const binding = process.binding('fs')
+  const FSReqWrap = binding.FSReqWrap || binding.FSReqCallback
+
+  writev = (fd, iovec, pos, cb) => {
+    const done = (er, bw) => cb(er, bw, iovec)
+    const req = new FSReqWrap()
+    req.oncomplete = done
+    binding.writeBuffers(fd, iovec, pos, req)
+  }
+}
 
 const _autoClose = Symbol('_autoClose')
 const _close = Symbol('_close')
@@ -371,13 +381,6 @@ class WriteStreamSync extends WriteStream {
       this[_onwrite](er, 0)
     }
   }
-}
-
-const writev = (fd, iovec, pos, cb) => {
-  const done = (er, bw) => cb(er, bw, iovec)
-  const req = new FSReqWrap()
-  req.oncomplete = done
-  binding.writeBuffers(fd, iovec, pos, req)
 }
 
 exports.ReadStream = ReadStream
