@@ -53,7 +53,7 @@ t.test('write then end', t => {
     t.equal(s.path, p)
     s.on('open', fd => {
       t.equal(fd, s.fd)
-      t.isa(fd, 'number')
+      t.type(fd, 'number')
     })
     s.on('finish', _ => check(t))
   })
@@ -103,7 +103,7 @@ t.test('multiple writes', t => {
   t.test('async after open', t => {
     const s = new fsm.WriteStream(p)
     s.on('open', fd => {
-      t.isa(fd, 'number')
+      t.type(fd, 'number')
       t.ok(s.write('a'))
       t.notOk(s.write('b'))
       t.notOk(s.write('c'))
@@ -121,7 +121,7 @@ t.test('multiple writes', t => {
   t.test('async after open, drains', t => {
     const s = new fsm.WriteStream(p)
     s.on('open', fd => {
-      t.isa(fd, 'number')
+      t.type(fd, 'number')
       t.ok(s.write('a'))
       t.notOk(s.write('b'))
       s.once('drain', _ => {

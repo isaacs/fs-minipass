@@ -16,7 +16,7 @@ t.test('read the readme', t => {
 
   t.test('sync', t => {
     const str = new fsm.ReadStreamSync(p, { encoding: 'utf8' })
-    t.isa(str.fd, 'number')
+    t.type(str.fd, 'number')
     const out = []
     str.on('data', chunk => out.push(chunk))
     check(t, out.join(''))
@@ -24,7 +24,7 @@ t.test('read the readme', t => {
 
   t.test('sync using read()', t => {
     const str = new fsm.ReadStreamSync(p, { encoding: 'utf8' })
-    t.isa(str.fd, 'number')
+    t.type(str.fd, 'number')
     const out = []
     let chunk
     while (chunk = str.read())
@@ -41,7 +41,7 @@ t.test('read the readme', t => {
     t.equal(str.read(), null)
     str.on('data', chunk => out.push(chunk))
     str.on('close', _ => {
-      t.isa(sawFD, 'number')
+      t.type(sawFD, 'number')
       check(t, out.join(''))
     })
   })
@@ -83,7 +83,7 @@ t.test('read the readme sized', t => {
     t.equal(str.read(), null)
     str.on('data', chunk => out.push(chunk))
     str.on('end', _ => {
-      t.isa(sawFD, 'number')
+      t.type(sawFD, 'number')
       check(t, out.join(''))
     })
   })
@@ -266,7 +266,7 @@ t.test('fd test', t => {
   t.test('sync', t => {
     const fd = fs.openSync(p, 'r')
     const str = new fsm.ReadStreamSync(p, { encoding: 'utf8', fd: fd })
-    t.isa(str.fd, 'number')
+    t.type(str.fd, 'number')
     t.equal(str.path, p)
     const out = []
     str.on('data', chunk => out.push(chunk))
@@ -276,7 +276,7 @@ t.test('fd test', t => {
   t.test('sync using read()', t => {
     const fd = fs.openSync(p, 'r')
     const str = new fsm.ReadStreamSync(p, { encoding: 'utf8', fd: fd })
-    t.isa(str.fd, 'number')
+    t.type(str.fd, 'number')
     t.equal(str.path, p)
     const out = []
     let chunk
@@ -288,7 +288,7 @@ t.test('fd test', t => {
   t.test('async', t => {
     const fd = fs.openSync(p, 'r')
     const str = new fsm.ReadStream(p, { encoding: 'utf8', fd: fd })
-    t.isa(str.fd, 'number')
+    t.type(str.fd, 'number')
     t.equal(str.path, p)
     const out = []
     t.equal(str.read(), null)
@@ -316,7 +316,7 @@ t.test('fd test, no autoClose', t => {
       fd: fd,
       autoClose: false
     })
-    t.isa(str.fd, 'number')
+    t.type(str.fd, 'number')
     t.equal(str.path, p)
     const out = []
     str.on('data', chunk => out.push(chunk))
@@ -330,7 +330,7 @@ t.test('fd test, no autoClose', t => {
       fd: fd,
       autoClose: false
     })
-    t.isa(str.fd, 'number')
+    t.type(str.fd, 'number')
     t.equal(str.path, p)
     const out = []
     let chunk
@@ -346,7 +346,7 @@ t.test('fd test, no autoClose', t => {
       fd: fd,
       autoClose: false
     })
-    t.isa(str.fd, 'number')
+    t.type(str.fd, 'number')
     t.equal(str.path, p)
     const out = []
     t.equal(str.read(), null)
