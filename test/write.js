@@ -3,11 +3,11 @@
 const t = require('tap')
 const fsm = require('../')
 const fs = require('fs')
-const EE = require('events').EventEmitter
+const { join } = require('path')
 const mutateFS = require('mutate-fs')
 
 t.test('basic write', t => {
-  const p = __dirname + '/basic-write'
+  const p = join(__dirname, 'basic-write')
 
   const check = t => {
     t.equal(fs.readFileSync(p, 'utf8'), 'ok')
@@ -30,7 +30,7 @@ t.test('basic write', t => {
 })
 
 t.test('write then end', t => {
-  const p = __dirname + '/write-then-end'
+  const p = join(__dirname, '/write-then-end')
 
   const check = t => {
     t.equal(fs.readFileSync(p, 'utf8'), 'okend')
@@ -62,7 +62,7 @@ t.test('write then end', t => {
 })
 
 t.test('multiple writes', t => {
-  const p = __dirname + '/multiple-writes'
+  const p = join(__dirname, '/multiple-writes')
 
   const check = t => {
     t.equal(fs.readFileSync(p, 'utf8'), 'abcdefghijklmnop')
@@ -128,22 +128,22 @@ t.test('multiple writes', t => {
         t.ok(s.write('c'))
         t.notOk(s.write('d'))
         t.notOk(s.write('e'))
-        s.once('drain', _ => {
+        s.once('drain', () => {
           t.ok(s.write('f'))
           t.notOk(s.write(Buffer.from('676869', 'hex')))
           t.notOk(s.write('jklm'))
           t.notOk(s.write(Buffer.from('nop')))
-          s.once('drain', _ => s.end())
+          s.once('drain', () => s.end())
         })
       })
-      s.on('finish', _ => check(t))
+      s.on('finish', () => check(t))
     })
   })
   t.end()
 })
 
 t.test('flags', t => {
-  const p = __dirname + '/flags'
+  const p = join(__dirname, '/flags')
 
   const check = t => {
     t.equal(fs.readFileSync(p, 'utf8'), 'ok')
@@ -166,7 +166,7 @@ t.test('flags', t => {
 })
 
 t.test('mode', t => {
-  const p = __dirname + '/mode'
+  const p = join(__dirname, '/mode')
 
   const check = t => {
     t.equal(fs.readFileSync(p, 'utf8'), 'ok')
@@ -190,7 +190,7 @@ t.test('mode', t => {
 })
 
 t.test('write after end', t => {
-  const p = __dirname + '/write-after-end'
+  const p = join(__dirname, '/write-after-end')
 
   const check = t => {
     t.equal(fs.readFileSync(p, 'utf8'), 'ok')
@@ -220,7 +220,7 @@ t.test('write after end', t => {
 })
 
 t.test('fd', t => {
-  const p = __dirname + '/fd'
+  const p = join(__dirname, '/fd')
 
   const check = t => {
     t.equal(fs.readFileSync(p, 'utf8'), 'ok')
@@ -245,7 +245,7 @@ t.test('fd', t => {
 })
 
 t.test('empty write', t => {
-  const p = __dirname + '/empty-write'
+  const p = join(__dirname, '/empty-write')
 
   const check = t => {
     t.equal(fs.readFileSync(p, 'utf8'), '')
@@ -297,7 +297,7 @@ t.test('empty write', t => {
 })
 
 t.test('fail open', t => {
-  const p = __dirname + '/fail-open'
+  const p = join(__dirname, '/fail-open')
   const poop = new Error('poop')
   t.teardown(mutateFS.fail('open', poop))
   t.throws(_ => new fsm.WriteStreamSync(p), poop)
@@ -309,7 +309,7 @@ t.test('fail open', t => {
 })
 
 t.test('fail open, positioned write', t => {
-  const p = __dirname + '/fail-open-positioned'
+  const p = join(__dirname, '/fail-open-positioned')
   const poop = new Error('poop')
   t.teardown(mutateFS.fail('open', poop))
   t.throws(_ => new fsm.WriteStreamSync(p, { start: 2 }), poop)
@@ -321,7 +321,7 @@ t.test('fail open, positioned write', t => {
 })
 
 t.test('fail close', t => {
-  const p = __dirname + '/fail-close'
+  const p = join(__dirname, '/fail-close')
   const poop = new Error('poop')
   t.teardown(mutateFS.fail('close', poop))
   t.teardown(() => fs.unlinkSync(p))
@@ -338,7 +338,7 @@ t.test('fail write', t => {
   const closeError = new Error('close error')
   t.teardown(mutateFS.fail('close', closeError))
 
-  const p = __dirname + '/fail-write'
+  const p = join(__dirname, '/fail-write')
   const poop = new Error('poop')
   t.teardown(mutateFS.fail('write', poop))
 
@@ -353,7 +353,7 @@ t.test('fail write', t => {
 })
 
 t.test('positioned write', t => {
-  const p = __dirname + '/positioned-write'
+  const p = join(__dirname, '/positioned-write')
   const write = Buffer.from('this is the data that is written')
 
   const data = Buffer.allocUnsafe(256)
@@ -389,7 +389,7 @@ t.test('positioned write', t => {
 })
 
 t.test('positioned then unpositioned', t => {
-  const p = __dirname + '/positioned-then-unpositioned'
+  const p = join(__dirname, '/positioned-then-unpositioned')
   const write = Buffer.from('this is the data that is written')
 
   const data = Buffer.allocUnsafe(256)
@@ -428,7 +428,7 @@ t.test('positioned then unpositioned', t => {
 })
 
 t.test('positioned then unpositioned at zero', t => {
-  const p = __dirname + '/positioned-then-unpositioned'
+  const p = join(__dirname, '/positioned-then-unpositioned')
   const write = Buffer.from('this is the data that is written')
 
   const data = Buffer.allocUnsafe(256)
@@ -467,7 +467,7 @@ t.test('positioned then unpositioned at zero', t => {
 })
 
 t.test('fd, no autoClose', t => {
-  const p = __dirname + '/fd-no-autoclose'
+  const p = join(__dirname, '/fd-no-autoclose')
 
   const check = (t, fd) => {
     fs.closeSync(fd)
@@ -493,7 +493,7 @@ t.test('fd, no autoClose', t => {
 })
 
 t.test('positioned, nonexistent file', t => {
-  const p = __dirname + '/pos-noent'
+  const p = join(__dirname, '/pos-noent')
 
   const check = t => {
     t.equal(fs.readFileSync(p, 'utf8'), '\0\0asdf\0\0\0\0asdf')
@@ -513,9 +513,9 @@ t.test('positioned, nonexistent file', t => {
     const w = new fsm.WriteStream(p, { start: 10 })
     w.end('asdf')
     w.on('close', _ => {
-      const w = new fsm.WriteStream(p, { start: 2 })
-      w.end('asdf')
-      w.on('close', _ => check(t))
+      const w2 = new fsm.WriteStream(p, { start: 2 })
+      w2.end('asdf')
+      w2.on('close', () => check(t))
     })
   })
 
