@@ -3,11 +3,11 @@
 const t = require('tap')
 const fsm = require('../')
 const fs = require('fs')
-const EE = require('events').EventEmitter
+const { resolve } = require('path')
 const mutateFS = require('mutate-fs')
 
 t.test('read the readme', t => {
-  const p = __dirname + '/../README.md'
+  const p = resolve(__dirname, '..', 'README.md')
   const rm = fs.readFileSync(p, 'utf8')
   const check = (t, res) => {
     t.equal(rm, res)
@@ -27,8 +27,9 @@ t.test('read the readme', t => {
     t.type(str.fd, 'number')
     const out = []
     let chunk
-    while (chunk = str.read())
+    while (chunk = str.read()) {
       out.push(chunk)
+    }
     check(t, out.join(''))
   })
 
@@ -48,7 +49,7 @@ t.test('read the readme', t => {
 })
 
 t.test('read the readme sized', t => {
-  const p = __dirname + '/../README.md'
+  const p = resolve(__dirname, '..', 'README.md')
   const size = fs.statSync(p).size
   const rm = fs.readFileSync(p, 'utf8')
   const check = (t, res) => {
@@ -69,8 +70,9 @@ t.test('read the readme sized', t => {
     t.equal(str.fd, null)
     const out = []
     let chunk
-    while (chunk = str.read())
+    while (chunk = str.read()) {
       out.push(chunk)
+    }
     check(t, out.join(''))
   })
 
@@ -98,10 +100,13 @@ t.test('slow sink', t => {
       setTimeout(_ => this.emit('drain'))
       return false
     }
-    end () { return this.write() }
+
+    end () {
+      return this.write()
+    }
   }
 
-  const p = __dirname + '/../README.md'
+  const p = resolve(__dirname, '..', 'README.md')
   const rm = fs.readFileSync(p, 'utf8')
   const check = t => {
     t.equal(chunks.join(''), rm)
@@ -135,10 +140,11 @@ t.test('zeno reading style', t => {
       chunks.push(chunk)
       return true
     }
+
     end () {}
   }
 
-  const p = __dirname + '/../README.md'
+  const p = resolve(__dirname, '..', 'README.md')
   const rm = fs.readFileSync(p, 'utf8')
   const check = t => {
     t.equal(chunks.join(''), rm)
@@ -213,33 +219,38 @@ t.test('fail read', t => {
   })
 
   fs.open = (path, flags, cb) => {
-    if (path === __filename)
+    if (path === __filename) {
       open(path, flags, (er, fd) => {
-        if (!er)
+        if (!er) {
           badFDs.add(fd)
+        }
         return cb(er, fd)
       })
-    else
+    } else {
       open(path, flags, cb)
+    }
   }
 
   fs.openSync = (path, flags) => {
     const fd = openSync(path, flags)
-    if (path === __filename)
+    if (path === __filename) {
       badFDs.add(fd)
+    }
     return fd
   }
 
   fs.read = function (fd, buf, offset, length, pos, cb) {
-    if (badFDs.has(fd))
+    if (badFDs.has(fd)) {
       process.nextTick(_ => cb(new Error('poop')))
-    else
+    } else {
       read(fd, buf, offset, length, pos, cb)
+    }
   }
 
   fs.readSync = function (fd, buf, offset, length, pos) {
-    if (badFDs.has(fd))
+    if (badFDs.has(fd)) {
       throw new Error('poop sync')
+    }
   }
 
   t.throws(_ => new fsm.ReadStreamSync(__filename))
@@ -256,7 +267,7 @@ t.test('fail read', t => {
 })
 
 t.test('fd test', t => {
-  const p = __dirname + '/../README.md'
+  const p = resolve(__dirname, '..', 'README.md')
   const rm = fs.readFileSync(p, 'utf8')
   const check = (t, res) => {
     t.equal(rm, res)
@@ -280,8 +291,9 @@ t.test('fd test', t => {
     t.equal(str.path, p)
     const out = []
     let chunk
-    while (chunk = str.read())
+    while (chunk = str.read()) {
       out.push(chunk)
+    }
     check(t, out.join(''))
   })
 
@@ -300,7 +312,7 @@ t.test('fd test', t => {
 })
 
 t.test('fd test, no autoClose', t => {
-  const p = __dirname + '/../README.md'
+  const p = resolve(__dirname, '..', 'README.md')
   const rm = fs.readFileSync(p, 'utf8')
   const check = (t, res, fd) => {
     // will throw EBADF if already closed
@@ -314,7 +326,7 @@ t.test('fd test, no autoClose', t => {
     const str = new fsm.ReadStreamSync(p, {
       encoding: 'utf8',
       fd: fd,
-      autoClose: false
+      autoClose: false,
     })
     t.type(str.fd, 'number')
     t.equal(str.path, p)
@@ -328,14 +340,15 @@ t.test('fd test, no autoClose', t => {
     const str = new fsm.ReadStreamSync(p, {
       encoding: 'utf8',
       fd: fd,
-      autoClose: false
+      autoClose: false,
     })
     t.type(str.fd, 'number')
     t.equal(str.path, p)
     const out = []
     let chunk
-    while (chunk = str.read())
+    while (chunk = str.read()) {
       out.push(chunk)
+    }
     check(t, out.join(''), fd)
   })
 
@@ -344,7 +357,7 @@ t.test('fd test, no autoClose', t => {
     const str = new fsm.ReadStream(p, {
       encoding: 'utf8',
       fd: fd,
-      autoClose: false
+      autoClose: false,
     })
     t.type(str.fd, 'number')
     t.equal(str.path, p)
