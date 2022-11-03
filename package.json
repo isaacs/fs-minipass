@@ -2,6 +2,7 @@
   "name": "fs-minipass",
   "version": "2.1.0",
   "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "test": "tap",
     "preversion": "npm test",
@@ -24,11 +25,14 @@
     "minipass": "^3.0.0"
   },
   "devDependencies": {
+    "@types/node": "^18.11.9",
     "mutate-fs": "^2.0.1",
-    "tap": "^15.0.10"
+    "tap": "^15.0.10",
+    "typescript": "^4.8.4"
   },
   "files": [
-    "index.js"
+    "index.js",
+    "index.d.ts"
   ],
   "tap": {
     "check-coverage": true
