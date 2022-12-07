@@ -170,7 +170,7 @@ t.test('mode', t => {
 
   const check = t => {
     t.equal(fs.readFileSync(p, 'utf8'), 'ok')
-    t.equal(fs.statSync(p).mode & 0o777, 0o700)
+    t.equal(fs.statSync(p).mode & 0o777, process.platform === 'win32' ? 0o666 : 0o700)
     fs.unlinkSync(p)
     t.end()
   }
