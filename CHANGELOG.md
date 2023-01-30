@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.0.1](https://github.com/npm/fs-minipass/compare/v3.0.0...v3.0.1) (2023-01-30)
+
+### Bug Fixes
+
+* [`97116ba`](https://github.com/npm/fs-minipass/commit/97116ba3e5644ee0b295a49d4f92358693b0a823) [#25](https://github.com/npm/fs-minipass/pull/25) only flush the queue after open if not already writing (#25) (@nlf)
+
 ## [3.0.0](https://github.com/npm/fs-minipass/compare/v2.1.0...v3.0.0) (2022-12-12)
 
 ### ⚠️ BREAKING CHANGES
