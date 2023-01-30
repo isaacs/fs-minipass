@@ -139,6 +139,33 @@ t.test('multiple writes', t => {
       s.on('finish', () => check(t))
     })
   })
+
+  t.test('async after open, writev delayed', t => {
+    const _fsm = t.mock('../', {
+      fs: {
+        ...fs,
+        writev: (...args) => {
+          setTimeout(fs.writev, 1000, ...args) // make writev very slow
+        },
+      },
+    })
+
+    const s = new _fsm.WriteStream(p)
+    s.on('open', fd => {
+      t.type(fd, 'number')
+      t.ok(s.write('a'))
+      t.notOk(s.write('b'))
+      t.notOk(s.write('c'))
+      t.notOk(s.write('d'))
+      t.notOk(s.write('e'))
+      t.notOk(s.write('f'))
+      t.notOk(s.write(Buffer.from('676869', 'hex')))
+      t.notOk(s.write('jklm'))
+      t.notOk(s.write(Buffer.from('nop')))
+      s.end()
+      s.on('finish', _ => check(t))
+    })
+  })
   t.end()
 })
 
