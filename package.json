@@ -24,7 +24,7 @@
   "homepage": "https://github.com/npm/fs-minipass#readme",
   "description": "fs read and write streams based on minipass",
   "dependencies": {
-    "minipass": "^5.0.0"
+    "minipass": "^6.0.1"
   },
   "devDependencies": {
     "@npmcli/eslint-config": "^4.0.1",
