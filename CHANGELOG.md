@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.0.3](https://github.com/npm/fs-minipass/compare/v3.0.2...v3.0.3) (2023-08-14)
+
+### Dependencies
+
+* [`f112e83`](https://github.com/npm/fs-minipass/commit/f112e83a49192644b44fb3a7067b1558ce3eacba) [#43](https://github.com/npm/fs-minipass/pull/43) bump minipass from 5.0.0 to 7.0.3
+
 ## [3.0.2](https://github.com/npm/fs-minipass/compare/v3.0.1...v3.0.2) (2023-04-26)
 
 ### Dependencies
