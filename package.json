@@ -1,54 +1,72 @@
 {
   "name": "fs-minipass",
   "version": "3.0.3",
-  "main": "lib/index.js",
+  "main": "./dist/commonjs/index.js",
   "scripts": {
+    "prepare": "tshy",
+    "pretest": "npm run prepare",
     "test": "tap",
-    "lint": "eslint \"**/*.{js,cjs,ts,mjs,jsx,tsx}\"",
-    "postlint": "template-oss-check",
-    "template-oss-apply": "template-oss-apply --force",
-    "lintfix": "npm run lint -- --fix",
-    "snap": "tap",
-    "posttest": "npm run lint"
+    "preversion": "npm test",
+    "postversion": "npm publish",
+    "prepublishOnly": "git push origin --follow-tags",
+    "format": "prettier --write . --loglevel warn",
+    "typedoc": "typedoc --tsconfig .tshy/esm.json ./src/*.ts"
   },
   "keywords": [],
-  "author": "GitHub Inc.",
+  "author": "Isaac Z. Schlueter",
   "license": "ISC",
   "repository": {
     "type": "git",
     "url": "https://github.com/npm/fs-minipass.git"
   },
-  "bugs": {
-    "url": "https://github.com/npm/fs-minipass/issues"
-  },
-  "homepage": "https://github.com/npm/fs-minipass#readme",
   "description": "fs read and write streams based on minipass",
   "dependencies": {
-    "minipass": "^7.0.3"
+    "minipass": "^7.0.4"
   },
   "devDependencies": {
-    "@npmcli/eslint-config": "^4.0.1",
-    "@npmcli/template-oss": "4.21.3",
+    "@types/node": "^20.11.30",
     "mutate-fs": "^2.1.1",
-    "tap": "^16.3.2"
+    "prettier": "^3.2.5",
+    "tap": "^18.7.1",
+    "tshy": "^1.12.0",
+    "typedoc": "^0.25.12"
   },
   "files": [
-    "bin/",
-    "lib/"
+    "dist"
   ],
-  "tap": {
-    "check-coverage": true,
-    "nyc-arg": [
-      "--exclude",
-      "tap-snapshots/**"
-    ]
-  },
   "engines": {
-    "node": "^14.17.0 || ^16.13.0 || >=18.0.0"
+    "node": ">=18.0.0"
   },
-  "templateOSS": {
-    "//@npmcli/template-oss": "This file is partially managed by @npmcli/template-oss. Edits may be overwritten.",
-    "version": "4.21.3",
-    "publish": "true"
+  "tshy": {
+    "exports": {
+      "./package.json": "./package.json",
+      ".": "./src/index.ts"
+    }
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/commonjs/index.d.ts",
+        "default": "./dist/commonjs/index.js"
+      }
+    }
+  },
+  "types": "./dist/commonjs/index.d.ts",
+  "type": "module",
+  "prettier": {
+    "semi": false,
+    "printWidth": 75,
+    "tabWidth": 2,
+    "useTabs": false,
+    "singleQuote": true,
+    "jsxSingleQuote": false,
+    "bracketSameLine": true,
+    "arrowParens": "avoid",
+    "endOfLine": "lf"
   }
 }

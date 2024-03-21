@@ -1,10 +1,13 @@
-'use strict'
+import fs from 'fs'
+import mutateFS from 'mutate-fs'
+import { dirname, resolve } from 'path'
+import t from 'tap'
+import { fileURLToPath } from 'url'
+import { ReadStream, ReadStreamSync } from '../dist/esm/index.js'
+import EE from 'events'
 
-const t = require('tap')
-const fsm = require('../')
-const fs = require('fs')
-const { resolve } = require('path')
-const mutateFS = require('mutate-fs')
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 t.test('read the readme', t => {
   const p = resolve(__dirname, '..', 'README.md')
@@ -15,7 +18,7 @@ t.test('read the readme', t => {
   }
 
   t.test('sync', t => {
-    const str = new fsm.ReadStreamSync(p, { encoding: 'utf8' })
+    const str = new ReadStreamSync(p, { encoding: 'utf8' })
     t.type(str.fd, 'number')
     const out = []
     str.on('data', chunk => out.push(chunk))
@@ -23,21 +26,21 @@ t.test('read the readme', t => {
   })
 
   t.test('sync using read()', t => {
-    const str = new fsm.ReadStreamSync(p, { encoding: 'utf8' })
+    const str = new ReadStreamSync(p, { encoding: 'utf8' })
     t.type(str.fd, 'number')
     const out = []
     let chunk
-    while (chunk = str.read()) {
+    while ((chunk = str.read())) {
       out.push(chunk)
     }
     check(t, out.join(''))
   })
 
   return t.test('async', t => {
-    const str = new fsm.ReadStream(p, { encoding: 'utf8' })
-    t.equal(str.fd, null)
+    const str = new ReadStream(p, { encoding: 'utf8' })
+    t.equal(str.fd, undefined)
     let sawFD
-    str.on('open', fd => sawFD = fd)
+    str.on('open', fd => (sawFD = fd))
     const out = []
     t.equal(str.read(), null)
     str.on('data', chunk => out.push(chunk))
@@ -58,29 +61,29 @@ t.test('read the readme sized', t => {
   }
 
   t.test('sync', t => {
-    const str = new fsm.ReadStreamSync(p, { encoding: 'utf8', size: size })
-    t.equal(str.fd, null)
+    const str = new ReadStreamSync(p, { encoding: 'utf8', size: size })
+    t.equal(str.fd, undefined)
     const out = []
     str.on('data', chunk => out.push(chunk))
     check(t, out.join(''))
   })
 
   t.test('sync using read()', t => {
-    const str = new fsm.ReadStreamSync(p, { encoding: 'utf8', size: size })
-    t.equal(str.fd, null)
+    const str = new ReadStreamSync(p, { encoding: 'utf8', size: size })
+    t.equal(str.fd, undefined)
     const out = []
     let chunk
-    while (chunk = str.read()) {
+    while ((chunk = str.read())) {
       out.push(chunk)
     }
     check(t, out.join(''))
   })
 
   return t.test('async', t => {
-    const str = new fsm.ReadStream(p, { encoding: 'utf8', size: size })
-    t.equal(str.fd, null)
+    const str = new ReadStream(p, { encoding: 'utf8', size: size })
+    t.equal(str.fd, undefined)
     let sawFD
-    str.on('open', fd => sawFD = fd)
+    str.on('open', fd => (sawFD = fd))
     const out = []
     t.equal(str.read(), null)
     str.on('data', chunk => out.push(chunk))
@@ -93,15 +96,14 @@ t.test('read the readme sized', t => {
 
 t.test('slow sink', t => {
   const chunks = []
-  const EE = require('events').EventEmitter
   class SlowStream extends EE {
-    write (chunk) {
+    write(chunk) {
       chunks.push(chunk)
       setTimeout(_ => this.emit('drain'))
       return false
     }
 
-    end () {
+    end() {
       return this.write()
     }
   }
@@ -116,7 +118,7 @@ t.test('slow sink', t => {
 
   t.test('sync', t => {
     const ss = new SlowStream()
-    const str = new fsm.ReadStreamSync(p, { encoding: 'utf8', readSize: 5 })
+    const str = new ReadStreamSync(p, { encoding: 'utf8', readSize: 5 })
     str.pipe(ss)
     // trigger a read-while-reading
     str.on('readable', _ => str.emit('drain'))
@@ -125,7 +127,7 @@ t.test('slow sink', t => {
 
   return t.test('async', t => {
     const ss = new SlowStream()
-    const str = new fsm.ReadStream(p, { encoding: 'utf8', readSize: 256 })
+    const str = new ReadStream(p, { encoding: 'utf8', readSize: 256 })
     str.pipe(ss)
     str.on('end', _ => check(t))
   })
@@ -134,14 +136,13 @@ t.test('slow sink', t => {
 t.test('zeno reading style', t => {
   t.teardown(mutateFS.zenoRead())
   const chunks = []
-  const EE = require('events').EventEmitter
   class Collector extends EE {
-    write (chunk) {
+    write(chunk) {
       chunks.push(chunk)
       return true
     }
 
-    end () {}
+    end() {}
   }
 
   const p = resolve(__dirname, '..', 'README.md')
@@ -154,14 +155,14 @@ t.test('zeno reading style', t => {
 
   t.test('sync', t => {
     const ss = new Collector()
-    const str = new fsm.ReadStreamSync(p, { encoding: 'utf8', readSize: 256 })
+    const str = new ReadStreamSync(p, { encoding: 'utf8', readSize: 256 })
     str.pipe(ss)
     check(t)
   })
 
   return t.test('async', t => {
     const ss = new Collector()
-    const str = new fsm.ReadStream(p, { encoding: 'utf8', readSize: 256 })
+    const str = new ReadStream(p, { encoding: 'utf8', readSize: 256 })
     str.pipe(ss)
     str.on('end', _ => check(t))
   })
@@ -170,8 +171,8 @@ t.test('zeno reading style', t => {
 t.test('fail open', t => {
   const poop = new Error('poop')
   t.teardown(mutateFS.fail('open', poop))
-  t.throws(_ => new fsm.ReadStreamSync(__filename), poop)
-  const str = new fsm.ReadStream(__filename)
+  t.throws(_ => new ReadStreamSync(__filename), poop)
+  const str = new ReadStream(__filename)
   str.on('error', er => {
     t.equal(er, poop)
     t.end()
@@ -181,8 +182,8 @@ t.test('fail open', t => {
 t.test('fail close', t => {
   const poop = new Error('poop')
   t.teardown(mutateFS.fail('close', poop))
-  t.throws(_ => new fsm.ReadStreamSync(__filename).resume(), poop)
-  const str = new fsm.ReadStream(__filename)
+  t.throws(_ => new ReadStreamSync(__filename).resume(), poop)
+  const str = new ReadStream(__filename)
   str.resume()
   str.on('error', er => {
     t.equal(er, poop)
@@ -192,10 +193,10 @@ t.test('fail close', t => {
 
 t.test('type errors', t => {
   const er = new TypeError('this is a readable stream')
-  t.throws(_ => new fsm.ReadStream(__filename).write('hello'), er)
-  t.throws(_ => new fsm.ReadStream(__filename).end(), er)
+  t.throws(_ => new ReadStream(__filename).write('hello'), er)
+  t.throws(_ => new ReadStream(__filename).end(), er)
   const pathstr = new TypeError('path must be a string')
-  t.throws(_ => new fsm.ReadStream(1234), pathstr)
+  t.throws(_ => new ReadStream(1234), pathstr)
   t.end()
 })
 
@@ -247,16 +248,16 @@ t.test('fail read', t => {
     }
   }
 
-  fs.readSync = function (fd, buf, offset, length, pos) {
+  fs.readSync = function (fd, _buf, _offset, _length, _pos) {
     if (badFDs.has(fd)) {
       throw new Error('poop sync')
     }
   }
 
-  t.throws(_ => new fsm.ReadStreamSync(__filename))
+  t.throws(_ => new ReadStreamSync(__filename))
 
   t.test('async', t => {
-    const str = new fsm.ReadStream(__filename)
+    const str = new ReadStream(__filename)
     str.once('error', er => {
       t.match(er, poop)
       t.end()
@@ -276,7 +277,7 @@ t.test('fd test', t => {
 
   t.test('sync', t => {
     const fd = fs.openSync(p, 'r')
-    const str = new fsm.ReadStreamSync(p, { encoding: 'utf8', fd: fd })
+    const str = new ReadStreamSync(p, { encoding: 'utf8', fd: fd })
     t.type(str.fd, 'number')
     t.equal(str.path, p)
     const out = []
@@ -286,12 +287,12 @@ t.test('fd test', t => {
 
   t.test('sync using read()', t => {
     const fd = fs.openSync(p, 'r')
-    const str = new fsm.ReadStreamSync(p, { encoding: 'utf8', fd: fd })
+    const str = new ReadStreamSync(p, { encoding: 'utf8', fd: fd })
     t.type(str.fd, 'number')
     t.equal(str.path, p)
     const out = []
     let chunk
-    while (chunk = str.read()) {
+    while ((chunk = str.read())) {
       out.push(chunk)
     }
     check(t, out.join(''))
@@ -299,7 +300,7 @@ t.test('fd test', t => {
 
   t.test('async', t => {
     const fd = fs.openSync(p, 'r')
-    const str = new fsm.ReadStream(p, { encoding: 'utf8', fd: fd })
+    const str = new ReadStream(p, { encoding: 'utf8', fd: fd })
     t.type(str.fd, 'number')
     t.equal(str.path, p)
     const out = []
@@ -323,7 +324,7 @@ t.test('fd test, no autoClose', t => {
 
   t.test('sync', t => {
     const fd = fs.openSync(p, 'r')
-    const str = new fsm.ReadStreamSync(p, {
+    const str = new ReadStreamSync(p, {
       encoding: 'utf8',
       fd: fd,
       autoClose: false,
@@ -337,7 +338,7 @@ t.test('fd test, no autoClose', t => {
 
   t.test('sync using read()', t => {
     const fd = fs.openSync(p, 'r')
-    const str = new fsm.ReadStreamSync(p, {
+    const str = new ReadStreamSync(p, {
       encoding: 'utf8',
       fd: fd,
       autoClose: false,
@@ -346,7 +347,7 @@ t.test('fd test, no autoClose', t => {
     t.equal(str.path, p)
     const out = []
     let chunk
-    while (chunk = str.read()) {
+    while ((chunk = str.read())) {
       out.push(chunk)
     }
     check(t, out.join(''), fd)
@@ -354,7 +355,7 @@ t.test('fd test, no autoClose', t => {
 
   t.test('async', t => {
     const fd = fs.openSync(p, 'r')
-    const str = new fsm.ReadStream(p, {
+    const str = new ReadStream(p, {
       encoding: 'utf8',
       fd: fd,
       autoClose: false,

@@ -7,6 +7,7 @@ tap-testdir*/
 
 # keep these
 !**/.gitignore
+!typedoc.json
 !/.commitlintrc.js
 !/.eslintrc.js
 !/.eslintrc.local.*
@@ -15,10 +16,11 @@ tap-testdir*/
 !/.npmrc
 !/.release-please-manifest.json
 !/bin/
+!/src/
+!/.tshy
 !/CHANGELOG*
 !/CODE_OF_CONDUCT.md
 !/CONTRIBUTING.md
-!/docs/
 !/lib/
 !/LICENSE*
 !/map.js

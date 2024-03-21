@@ -30,9 +30,10 @@ overhead.
 It's just streams, you pipe them or read() them or write() to them.
 
 ```js
-const fsm = require('fs-minipass')
-const readStream = new fsm.ReadStream('file.txt')
-const writeStream = new fsm.WriteStream('output.txt')
+import { ReadStream, WriteStream } from 'fs-minipass'
+// or: const { ReadStream, WriteStream } = require('fs-minipass')
+const readStream = new ReadStream('file.txt')
+const writeStream = new WriteStream('output.txt')
 writeStream.write('some file header or whatever\n')
 readStream.pipe(writeStream)
 ```
