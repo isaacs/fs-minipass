@@ -1,10 +1,12 @@
-'use strict'
+import fs from 'fs'
+import mutateFS from 'mutate-fs'
+import { dirname, join } from 'path'
+import t from 'tap'
+import { fileURLToPath } from 'url'
+import { WriteStream, WriteStreamSync } from '../dist/esm/index.js'
 
-const t = require('tap')
-const fsm = require('../')
-const fs = require('fs')
-const { join } = require('path')
-const mutateFS = require('mutate-fs')
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 t.test('basic write', t => {
   const p = join(__dirname, 'basic-write')
@@ -16,12 +18,13 @@ t.test('basic write', t => {
   }
 
   t.test('sync', t => {
-    new fsm.WriteStreamSync(p).end('ok')
+    const s = new WriteStreamSync(p)
+    s.end('ok')
     check(t)
   })
 
   t.test('async', t => {
-    const s = new fsm.WriteStream(p)
+    const s = new WriteStream(p)
     s.end('ok')
     s.on('close', _ => check(t))
   })
@@ -39,17 +42,17 @@ t.test('write then end', t => {
   }
 
   t.test('sync', t => {
-    const s = new fsm.WriteStreamSync(p)
+    const s = new WriteStreamSync(p)
     s.write('ok')
     s.end('end')
     check(t)
   })
 
   t.test('async', t => {
-    const s = new fsm.WriteStream(p)
+    const s = new WriteStream(p)
     s.write('ok')
     s.end('end')
-    t.equal(s.fd, null)
+    t.equal(s.fd, undefined)
     t.equal(s.path, p)
     s.on('open', fd => {
       t.equal(fd, s.fd)
@@ -71,7 +74,7 @@ t.test('multiple writes', t => {
   }
 
   t.test('sync', t => {
-    const s = new fsm.WriteStreamSync(p)
+    const s = new WriteStreamSync(p)
     s.write('a')
     s.write('b')
     s.write('c')
@@ -86,7 +89,7 @@ t.test('multiple writes', t => {
   })
 
   t.test('async', t => {
-    const s = new fsm.WriteStream(p)
+    const s = new WriteStream(p)
     s.write('a')
     s.write('b')
     s.write('c')
@@ -101,7 +104,7 @@ t.test('multiple writes', t => {
   })
 
   t.test('async after open', t => {
-    const s = new fsm.WriteStream(p)
+    const s = new WriteStream(p)
     s.on('open', fd => {
       t.type(fd, 'number')
       t.ok(s.write('a'))
@@ -119,7 +122,7 @@ t.test('multiple writes', t => {
   })
 
   t.test('async after open, drains', t => {
-    const s = new fsm.WriteStream(p)
+    const s = new WriteStream(p)
     s.on('open', fd => {
       t.type(fd, 'number')
       t.ok(s.write('a'))
@@ -141,30 +144,32 @@ t.test('multiple writes', t => {
   })
 
   t.test('async after open, writev delayed', t => {
-    const _fsm = t.mock('../', {
-      fs: {
-        ...fs,
-        writev: (...args) => {
-          setTimeout(fs.writev, 1000, ...args) // make writev very slow
+    ;(async () => {
+      const _fsm = await t.mockImport('../dist/esm/index.js', {
+        fs: {
+          ...fs,
+          writev: (...args) => {
+            setTimeout(fs.writev, 1000, ...args) // make writev very slow
+          },
         },
-      },
-    })
+      })
 
-    const s = new _fsm.WriteStream(p)
-    s.on('open', fd => {
-      t.type(fd, 'number')
-      t.ok(s.write('a'))
-      t.notOk(s.write('b'))
-      t.notOk(s.write('c'))
-      t.notOk(s.write('d'))
-      t.notOk(s.write('e'))
-      t.notOk(s.write('f'))
-      t.notOk(s.write(Buffer.from('676869', 'hex')))
-      t.notOk(s.write('jklm'))
-      t.notOk(s.write(Buffer.from('nop')))
-      s.end()
-      s.on('finish', _ => check(t))
-    })
+      const s = new _fsm.WriteStream(p)
+      s.on('open', fd => {
+        t.type(fd, 'number')
+        t.ok(s.write('a'))
+        t.notOk(s.write('b'))
+        t.notOk(s.write('c'))
+        t.notOk(s.write('d'))
+        t.notOk(s.write('e'))
+        t.notOk(s.write('f'))
+        t.notOk(s.write(Buffer.from('676869', 'hex')))
+        t.notOk(s.write('jklm'))
+        t.notOk(s.write(Buffer.from('nop')))
+        s.end()
+        s.on('finish', _ => check(t))
+      })
+    })()
   })
   t.end()
 })
@@ -179,12 +184,12 @@ t.test('flags', t => {
   }
 
   t.test('sync', t => {
-    new fsm.WriteStreamSync(p, { flags: 'w+' }).end('ok')
+    new WriteStreamSync(p, { flags: 'w+' }).end('ok')
     check(t)
   })
 
   t.test('async', t => {
-    const s = new fsm.WriteStream(p, { flags: 'w+' })
+    const s = new WriteStream(p, { flags: 'w+' })
     s.end('ok')
     s.on('finish', _ => check(t))
   })
@@ -197,18 +202,21 @@ t.test('mode', t => {
 
   const check = t => {
     t.equal(fs.readFileSync(p, 'utf8'), 'ok')
-    t.equal(fs.statSync(p).mode & 0o777, process.platform === 'win32' ? 0o666 : 0o700)
+    t.equal(
+      fs.statSync(p).mode & 0o777,
+      process.platform === 'win32' ? 0o666 : 0o700,
+    )
     fs.unlinkSync(p)
     t.end()
   }
 
   t.test('sync', t => {
-    new fsm.WriteStreamSync(p, { mode: 0o700 }).end('ok')
+    new WriteStreamSync(p, { mode: 0o700 }).end('ok')
     check(t)
   })
 
   t.test('async', t => {
-    const s = new fsm.WriteStream(p, { mode: 0o700 })
+    const s = new WriteStream(p, { mode: 0o700 })
     s.end('ok')
     s.on('finish', _ => check(t))
   })
@@ -226,15 +234,17 @@ t.test('write after end', t => {
   }
 
   t.test('sync', t => {
-    const s = new fsm.WriteStreamSync(p, { mode: 0o700 })
+    const s = new WriteStreamSync(p, { mode: 0o700 })
     s.end('ok')
-    t.throws(_ => s.write('626164', 'hex'),
-      new Error('write() after end()'))
+    t.throws(
+      _ => s.write('626164', 'hex'),
+      new Error('write() after end()'),
+    )
     check(t)
   })
 
   t.test('async', t => {
-    const s = new fsm.WriteStream(p, { mode: 0o700 })
+    const s = new WriteStream(p, { mode: 0o700 })
     s.end('ok')
     s.on('error', e => {
       t.match(e, new Error('write() after end()'))
@@ -257,13 +267,13 @@ t.test('fd', t => {
 
   t.test('sync', t => {
     const fd = fs.openSync(p, 'w')
-    new fsm.WriteStreamSync(p, { fd: fd }).end('ok')
+    new WriteStreamSync(p, { fd: fd }).end('ok')
     check(t)
   })
 
   t.test('async', t => {
     const fd = fs.openSync(p, 'w')
-    const s = new fsm.WriteStream(p, { fd: fd })
+    const s = new WriteStream(p, { fd: fd })
     s.end('ok')
     s.on('finish', _ => check(t))
   })
@@ -282,11 +292,11 @@ t.test('empty write', t => {
 
   t.test('sync', t => {
     t.test('empty string', t => {
-      new fsm.WriteStreamSync(p).end('')
+      new WriteStreamSync(p).end('')
       check(t)
     })
     t.test('no chunk to end', t => {
-      new fsm.WriteStreamSync(p).end('')
+      new WriteStreamSync(p).end('')
       check(t)
     })
     t.end()
@@ -295,13 +305,13 @@ t.test('empty write', t => {
   return t.test('async', t => {
     t.test('immediate', t => {
       t.test('no chunk to end', t => {
-        const s = new fsm.WriteStream(p)
+        const s = new WriteStream(p)
         s.end()
         s.on('finish', _ => check(t))
       })
 
       return t.test('empty string', t => {
-        const s = new fsm.WriteStream(p)
+        const s = new WriteStream(p)
         s.end('')
         s.on('finish', _ => check(t))
       })
@@ -309,13 +319,13 @@ t.test('empty write', t => {
 
     return t.test('end on open', t => {
       t.test('no chunk to end', t => {
-        const s = new fsm.WriteStream(p)
+        const s = new WriteStream(p)
         s.on('open', _ => s.end())
         s.on('finish', _ => check(t))
       })
 
       return t.test('empty string', t => {
-        const s = new fsm.WriteStream(p)
+        const s = new WriteStream(p)
         s.on('open', _ => s.end(''))
         s.on('finish', _ => check(t))
       })
@@ -327,8 +337,8 @@ t.test('fail open', t => {
   const p = join(__dirname, '/fail-open')
   const poop = new Error('poop')
   t.teardown(mutateFS.fail('open', poop))
-  t.throws(_ => new fsm.WriteStreamSync(p), poop)
-  const str = new fsm.WriteStream(p)
+  t.throws(_ => new WriteStreamSync(p), poop)
+  const str = new WriteStream(p)
   str.on('error', er => {
     t.equal(er, poop)
     t.end()
@@ -339,8 +349,8 @@ t.test('fail open, positioned write', t => {
   const p = join(__dirname, '/fail-open-positioned')
   const poop = new Error('poop')
   t.teardown(mutateFS.fail('open', poop))
-  t.throws(_ => new fsm.WriteStreamSync(p, { start: 2 }), poop)
-  const str = new fsm.WriteStream(p, { start: 2 })
+  t.throws(_ => new WriteStreamSync(p, { start: 2 }), poop)
+  const str = new WriteStream(p, { start: 2 })
   str.on('error', er => {
     t.equal(er, poop)
     t.end()
@@ -352,8 +362,8 @@ t.test('fail close', t => {
   const poop = new Error('poop')
   t.teardown(mutateFS.fail('close', poop))
   t.teardown(() => fs.unlinkSync(p))
-  t.throws(_ => new fsm.WriteStreamSync(p).end('asdf'), poop)
-  const str = new fsm.WriteStream(p).end('asdf')
+  t.throws(_ => new WriteStreamSync(p).end('asdf'), poop)
+  const str = new WriteStream(p).end('asdf')
   str.on('error', er => {
     t.equal(er, poop)
     t.end()
@@ -369,8 +379,8 @@ t.test('fail write', t => {
   const poop = new Error('poop')
   t.teardown(mutateFS.fail('write', poop))
 
-  t.throws(_ => new fsm.WriteStreamSync(p).write('foo'), poop)
-  const str = new fsm.WriteStream(p)
+  t.throws(_ => new WriteStreamSync(p).write('foo'), poop)
+  const str = new WriteStream(p)
   str.write('foo')
   str.on('error', er => {
     t.equal(er, poop)
@@ -401,13 +411,13 @@ t.test('positioned write', t => {
 
   t.test('sync', t => {
     fs.writeFileSync(p, data)
-    new fsm.WriteStreamSync(p, { start: 100 }).end(write)
+    new WriteStreamSync(p, { start: 100 }).end(write)
     check(t)
   })
 
   t.test('async', t => {
     fs.writeFileSync(p, data)
-    const s = new fsm.WriteStream(p, { start: 100 })
+    const s = new WriteStream(p, { start: 100 })
     s.end(write)
     s.on('finish', _ => check(t))
   })
@@ -437,17 +447,17 @@ t.test('positioned then unpositioned', t => {
 
   t.test('sync', t => {
     fs.writeFileSync(p, data)
-    const s = new fsm.WriteStreamSync(p, { start: 100 })
-    s.write(write.slice(0, 20))
-    s.end(write.slice(20))
+    const s = new WriteStreamSync(p, { start: 100 })
+    s.write(write.subarray(0, 20))
+    s.end(write.subarray(20))
     check(t)
   })
 
   t.test('async', t => {
     fs.writeFileSync(p, data)
-    const s = new fsm.WriteStream(p, { start: 100 })
-    s.write(write.slice(0, 20))
-    s.end(write.slice(20))
+    const s = new WriteStream(p, { start: 100 })
+    s.write(write.subarray(0, 20))
+    s.end(write.subarray(20))
     s.on('close', _ => check(t))
   })
 
@@ -476,17 +486,17 @@ t.test('positioned then unpositioned at zero', t => {
 
   t.test('sync', t => {
     fs.writeFileSync(p, data)
-    const s = new fsm.WriteStreamSync(p, { start: 0 })
-    s.write(write.slice(0, 20))
-    s.end(write.slice(20))
+    const s = new WriteStreamSync(p, { start: 0 })
+    s.write(write.subarray(0, 20))
+    s.end(write.subarray(20))
     check(t)
   })
 
   t.test('async', t => {
     fs.writeFileSync(p, data)
-    const s = new fsm.WriteStream(p, { start: 0 })
-    s.write(write.slice(0, 20))
-    s.end(write.slice(20))
+    const s = new WriteStream(p, { start: 0 })
+    s.write(write.subarray(0, 20))
+    s.end(write.subarray(20))
     s.on('close', _ => check(t))
   })
 
@@ -505,13 +515,13 @@ t.test('fd, no autoClose', t => {
 
   t.test('sync', t => {
     const fd = fs.openSync(p, 'w')
-    new fsm.WriteStreamSync(p, { fd: fd, autoClose: false }).end('ok')
+    new WriteStreamSync(p, { fd: fd, autoClose: false }).end('ok')
     check(t, fd)
   })
 
   t.test('async', t => {
     const fd = fs.openSync(p, 'w')
-    const s = new fsm.WriteStream(p, { fd: fd, autoClose: false })
+    const s = new WriteStream(p, { fd: fd, autoClose: false })
     s.end('ok')
     s.on('finish', _ => check(t, fd))
   })
@@ -529,18 +539,18 @@ t.test('positioned, nonexistent file', t => {
   }
 
   t.test('sync', t => {
-    const w = new fsm.WriteStreamSync(p, { start: 10 })
+    const w = new WriteStreamSync(p, { start: 10 })
     w.end('asdf')
-    const w2 = new fsm.WriteStreamSync(p, { start: 2 })
+    const w2 = new WriteStreamSync(p, { start: 2 })
     w2.end('asdf')
     check(t)
   })
 
   t.test('async', t => {
-    const w = new fsm.WriteStream(p, { start: 10 })
+    const w = new WriteStream(p, { start: 10 })
     w.end('asdf')
     w.on('close', _ => {
-      const w2 = new fsm.WriteStream(p, { start: 2 })
+      const w2 = new WriteStream(p, { start: 2 })
       w2.end('asdf')
       w2.on('close', () => check(t))
     })
