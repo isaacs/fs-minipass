@@ -8,6 +8,7 @@ tap-testdir*/
 # keep these
 !**/.gitignore
 !typedoc.json
+!package-lock.json
 !/.commitlintrc.js
 !/.eslintrc.js
 !/.eslintrc.local.*

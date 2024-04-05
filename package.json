@@ -1,5 +1,5 @@
 {
-  "name": "fs-minipass",
+  "name": "@isaacs/fs-minipass",
   "version": "3.0.3",
   "main": "./dist/commonjs/index.js",
   "scripts": {
