@@ -1,6 +1,6 @@
 {
   "name": "@isaacs/fs-minipass",
-  "version": "3.0.3",
+  "version": "4.0.0",
   "main": "./dist/commonjs/index.js",
   "scripts": {
     "prepare": "tshy",
